@@ -16,9 +16,7 @@ import tarfile
 import random
 import ndjson
 import json
-from ftfty import fix_text
-
-from utils import make_archive
+from ftfy import fix_text
 
 """
 Author: E.W.Ayers
@@ -236,11 +234,11 @@ def get_and_format(url, save_dir, archive_dir):
 if __name__ == "__main__":
     get_and_format(
         "https://archive.org/download/stackexchange/mathoverflow.net.7z",
-        "math_overflow"
+        "math_overflow",
         "archive/math_overflow",
     )
     get_and_format(
         "https://archive.org/download/stackexchange/math.stackexchange.com.7z",
-        "math_stack_exchange"
+        "math_stack_exchange",
         "archive/math_stack_exchange",
     )

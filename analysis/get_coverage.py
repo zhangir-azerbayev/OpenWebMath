@@ -1,20 +1,13 @@
 import argparse
-from typing import List
 from functools import partial
-import sys
-from concurrent.futures import ProcessPoolExecutor
 
-import ndjson
-from tqdm import tqdm
-from datasets import load_dataset
+from datasets import load_dataset, Dataset
 import sentencepiece as spm 
 
 import code
 
-def is_good_url(doc: str, domains: str): return any(x in doc["url"] for x in domains)
-
 def batch_tokenize(batch, sp):
-    num_toks = sum(len(x) for x in sp.encode_as_ids([str(x) for x in batch["text"]]))
+    num_toks = sum(map(len, sp.encode_as_ids(batch["text"])))
 
     return {"tokens": [num_toks]}
 
@@ -35,44 +28,34 @@ def main(args):
     print("dumps: ", args.dumps)
     print("domains: ", args.domains)
 
-    owm = load_dataset("open-web-math/open-web-math")["train"]
+    owm = load_dataset("open-web-math/open-web-math")["train"] 
 
-    is_good_url_partial = partial(is_good_url, domains=args.domains)
-
-    filtered_owm = owm.filter(is_good_url_partial, num_proc=args.cpus)
+    prefiltered_owm = owm.filter(
+        lambda doc: any(x in doc["url"] for x in args.domains), 
+        num_proc=args.cpus
+    )
 
     sp = spm.SentencePieceProcessor(model_file=args.tokenizer_model)
     
-    dumps_tokens = []
-    for dump in args.dumps:
+    summary = ""
+    for dump, domain in zip(args.dumps, args.domains):
         print(f"loading {dump}...")
         data = load_dataset(dump)["train"]
 
-        print(data.column_names)
-
         print(f"tokenizing {dump}...")
-        num_toks = get_num_toks(data, sp, args.cpus)
+        dump_toks = get_num_toks(data, sp, args.cpus)
 
-        print(f'{num_toks:.3e}')
+        print("filtered and tokenizing owm...")
+        domain_dataset = prefiltered_owm.filter(lambda x: domain in x["url"])
+        domain_toks = get_num_toks(domain_dataset, sp, args.cpus)
 
-        dumps_tokens.append(num_toks)
-
-    domains_tokens = dict()
-    print("tokenizing filtered owm...")
-    for domain in args.domains:
-        domain_dataset = filtered_owm.filter(lambda x: domain in x["url"])
-        domains_tokens[domain] = get_num_toks(domain_dataset, sp, args.cpus)
-
-    print("\n"*10)
-
-    for i, domain in enumerate(args.domains):
-        dump_toks = dumps_tokens[i]
-        domain_toks = domains_tokens[domain]
         ratio = dump_toks/domain_toks
 
 
-        print(f"{domain}\ninternet archive tokens: {dump_toks:.4E}\nowm tokens: {domain_toks:.4E}")
-        print(f"ratio: {ratio:.4f}\n\n")
+        summary += f"{domain}\ninternet archive tokens: {dump_toks:.4E}\nowm tokens: {domain_toks:.4E}"
+        summary += f"ratio: {ratio:.4f}\n\n"
+
+    print("\n"*5, summary)
 
 
 if __name__=="__main__":
@@ -82,18 +65,18 @@ if __name__=="__main__":
             "--dumps", 
             nargs='+', type=str,
             default=[
-                "proofwiki", 
+                # "proofwiki", can't find a recent proofwiki xml dump
                 "math_stack_exchange",
-                "math_overflow"
+                "math_overflow",
             ]
     )
     parser.add_argument(
             "--domains", 
             nargs='+', type=str,
             default=[
-                "proofwiki.org",
+                # "proofwiki.org", can't find a recent proofwiki xml dump
                 "math.stackexchange.com",
-                "mathoverflow.net"
+                "mathoverflow.net",
             ]
     )
     parser.add_argument("--tokenizer_model", type=str)
@@ -102,4 +85,3 @@ if __name__=="__main__":
     args = parser.parse_args()
 
     main(args)
-

@@ -30,7 +30,7 @@ PROOFWIKI_URL = (
     "https://zenodo.org/record/4902289/files/naturalproofs_proofwiki.json?download=1"
 )
 def proofwiki(testing=False):
-    save_dir = "wiki/proofwiki"
+    save_dir = "proofwiki"
     Path(save_dir).mkdir(parents=True, exist_ok=True)
 
     if testing:

@@ -200,14 +200,14 @@ def text_of_post(post):
     return text, post.Score, post.Id, answered
 
 
-def get_and_format(url, save_dir):
-    VAL_RATE = 0.05
+def get_and_format(url, save_dir, archive_dir):
     Path(save_dir).mkdir(exist_ok=True, parents=True)
-    archive_path = os.path.join(save_dir, "archive.7z")
-    os.system(f"wget -O {archive_path} {url}")
+    archive_path = os.path.join(archive_dir, "archive.7z")
+    if not os.path.isfile(archive_path):
+        os.system(f"wget -O {archive_path} {url}")
 
     global DATA_DIR
-    DATA_DIR = os.path.join(save_dir, "xml")
+    DATA_DIR = os.path.join(archive_dir, "xml")
     print(f"DATA DIR {DATA_DIR}")
     os.system(f"7z e {archive_path} -o{DATA_DIR}")
 
@@ -234,11 +234,13 @@ def get_and_format(url, save_dir):
 
 
 if __name__ == "__main__":
-    # get_and_format(
-    #     "https://archive.org/download/stackexchange/mathoverflow.net.7z",
-    #     save_dir="stack-exchange/math_overflow",
-    # )
+    get_and_format(
+        "https://archive.org/download/stackexchange/mathoverflow.net.7z",
+        "math_overflow"
+        "archive/math_overflow",
+    )
     get_and_format(
         "https://archive.org/download/stackexchange/math.stackexchange.com.7z",
-        "stack-exchange/math_stack_exchange",
+        "math_stack_exchange"
+        "archive/math_stack_exchange",
     )
